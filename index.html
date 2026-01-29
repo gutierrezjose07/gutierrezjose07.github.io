@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyPets 🐾</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f8f1e9; --navbar-bg: rgba(255, 255, 255, 0.9);
+            --text: #57606f; --accent: #ff9f43; --danger: #ff4757;
+            --card-bg: #ffffff; --shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        [data-theme="dark"] {
+            --primary: #1e272e; --navbar-bg: rgba(30, 39, 46, 0.95);
+            --text: #d2dae2; --accent: #ffa801; --card-bg: #2f3640;
+        }
+        body { font-family: 'Quicksand', sans-serif; background-color: var(--primary); color: var(--text); margin: 0; transition: 0.3s; padding-top: 80px; }
+        
+        /* NAVBAR */
+        .navbar { position: fixed; top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: var(--navbar-bg); backdrop-filter: blur(10px); z-index: 1000; box-sizing: border-box; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .nav-controls { display: flex; align-items: center; gap: 8px; }
+        #search-input { padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 120px; transition: 0.3s; }
+        #search-input:focus { width: 180px; border-color: var(--accent); }
+
+        /* CONTENEDORES */
+        .albums-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .album-card { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; transition: 0.3s; position: relative; }
+        .album-card img { width: 100%; height: 200px; object-fit: cover; }
+        .album-info { padding: 15px; text-align: center; font-weight: bold; }
+        .delete-btn { position: absolute; top: 10px; right: 10px; background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; z-index: 10; font-weight: bold;}
+
+        .hidden { display: none !important; }
+        .photo-view { padding: 20px; text-align: center; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 20px; }
+        
+        .gallery-item { height: 180px; border-radius: 10px; overflow: hidden; cursor: grab; position: relative; transition: transform 0.2s; border: 2px solid transparent; }
+        .gallery-item:active { cursor: grabbing; }
+        .gallery-item.dragging { opacity: 0.5; transform: scale(0.9); border: 2px dashed var(--accent); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        
+        .del-photo { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.8); color: white; border: none; border-radius: 5px; cursor: pointer; padding: 2px 8px; font-weight: bold; z-index: 5; }
+
+        .btn-main { background: var(--accent); color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 10px; padding: 10px 18px; margin: 5px; transition: 0.2s; }
+        .btn-main:hover { transform: scale(1.05); }
+
+        .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
+        #lb-img { max-width: 90%; max-height: 80%; border-radius: 8px; }
+        .lb-nav { position: absolute; top: 50%; color: white; background: none; border: none; font-size: 2rem; cursor: pointer; padding: 20px; }
+        .prev-btn { left: 10px; } .next-btn { right: 10px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">🐾 MyPets</div>
+        <div class="nav-controls">
+            <input type="text" id="search-input" placeholder="Buscar álbum..." onkeyup="window.searchAlbums()">
+            <button class="btn-main" style="background:#3498db;" onclick="window.downloadBackup()">💾 Backup</button>
+            <button class="btn-main" style="background:#e67e22;" onclick="document.getElementById('import-input').click()">📥 Import</button>
+            <input type="file" id="import-input" hidden accept=".json" onchange="window.importBackup(event)">
+            <button onclick="toggleTheme()" id="theme-icon" style="background:none; border:none; cursor:pointer; font-size:1.4rem;">🌙</button>
+        </div>
+    </nav>
+
+    <div id="view-home">
+        <header style="text-align:center;"><h1>Mis Álbumes</h1></header>
+        <main id="albums-root" class="albums-container">
+            <div class="album-card" id="btn-add-static" style="border: 2px dashed var(--accent); background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px;" onclick="window.openModal()">
+                <span style="font-size: 3rem; color: var(--accent);">+</span>
+                <p>Nuevo Álbum</p>
+            </div>
+        </main>
+    </div>
+
+    <section id="view-photos" class="photo-view hidden">
+        <button class="btn-main" style="background:#7f8c8d;" onclick="window.showHome()">← Volver</button>
+        <button class="btn-main" style="background:#2ecc71;" onclick="document.getElementById('add-more').click()">➕ Fotos</button>
+        <button class="btn-main" style="background:#9b59b6;" onclick="window.editTitle()">✏️ Título</button>
+        <input type="file" id="add-more" hidden multiple accept="image/*" onchange="window.addPhotos(event)">
+        
+        <h2 id="current-album-title" style="color:var(--accent); margin-bottom: 0;"></h2>
+        <p id="album-meta" style="font-size: 0.8rem; opacity: 0.7;"></p>
+        <p style="font-size: 0.7rem; color: var(--accent);">💡 Arrastra las fotos para reordenarlas</p>
+        
+        <div id="inner-gallery" class="gallery"></div>
+    </section>
+
+    <div id="modal" class="lightbox">
+        <div style="background:var(--card-bg); padding:30px; border-radius:20px; width:90%; max-width:400px; text-align:center;">
+            <h3 style="color:var(--text)">Crear Álbum</h3>
+            <input type="text" id="new-name" placeholder="Nombre del álbum" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+            <input type="file" id="new-files" multiple accept="image/*" style="width:100%; margin-bottom:15px; color:var(--text)">
+            <button class="btn-main" id="btn-save" onclick="window.handleCreate()">Crear ✨</button>
+            <button class="btn-main" style="background:#aaa;" onclick="window.closeModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="lightbox" class="lightbox">
+        <span style="position:absolute; top:20px; right:25px; color:white; font-size:2.5rem; cursor:pointer;" onclick="window.closeLightbox()">&times;</span>
+        <button class="lb-nav prev-btn" onclick="window.changeImage(-1)">❮</button>
+        <img id="lb-img" src="">
+        <button class="lb-nav next-btn" onclick="window.changeImage(1)">❯</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvTeyHB8MMLGOrvJF9DbmJ_Y4VnLrqHsw",
+            authDomain: "prueba-galeria-7ba90.firebaseapp.com",
+            projectId: "prueba-galeria-7ba90",
+            storageBucket: "prueba-galeria-7ba90.firebasestorage.app",
+            messagingSenderId: "112360740009",
+            appId: "1:112360740009:web:28aedbd5e826f28b1805b8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentAlbumId = null;
+        let currentPhotos = [];
+        let currentImgIndex = 0;
+        let allAlbums = [];
+        let draggedIdx = null;
+
+        async function compress(file) {
+            return new Promise(res => {
+                const r = new FileReader(); r.readAsDataURL(file);
+                r.onload = e => {
+                    const img = new Image(); img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const scale = 800 / img.width;
+                        canvas.width = 800; canvas.height = img.height * scale;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        res(canvas.toDataURL('image/jpeg', 0.6));
+                    }
+                }
+            });
+        }
+
+        // --- FUNCIONES NUBE ---
+        window.handleCreate = async () => {
+            const name = document.getElementById('new-name').value;
+            const files = document.getElementById('new-files').files;
+            if(!name || files.length === 0) return alert("Datos incompletos");
+            const btn = document.getElementById('btn-save');
+            btn.innerText = "Subiendo..."; btn.disabled = true;
+
+            const photoStrings = await Promise.all(Array.from(files).map(f => compress(f)));
+            await addDoc(collection(db, "albums"), {
+                title: name,
+                photos: photoStrings.map(p => ({ src: p, date: Date.now() })),
+                createdAt: Date.now()
+            });
+            window.closeModal();
+            btn.innerText = "Crear ✨"; btn.disabled = false;
+        };
+
+        window.deleteAlbum = async (id) => {
+            if(confirm("¿Borrar álbum?")) await deleteDoc(doc(db, "albums", id));
+        };
+
+        window.editTitle = async () => {
+            const nuevo = prompt("Nuevo nombre:", document.getElementById('current-album-title').innerText);
+            if(nuevo) await updateDoc(doc(db, "albums", currentAlbumId), { title: nuevo });
+        };
+
+        window.addPhotos = async (e) => {
+            const files = e.target.files;
+            if(files.length === 0) return;
+            const newOnes = await Promise.all(Array.from(files).map(f => compress(f)));
+            const updated = [...currentPhotos, ...newOnes.map(p => ({ src: p, date: Date.now() }))];
+            await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
+        };
+
+        window.deleteImage = async (idx, e) => {
+            e.stopPropagation();
+            if(confirm("¿Eliminar foto?")) {
+                const updated = [...currentPhotos];
+                updated.splice(idx, 1);
+                if(updated.length === 0) return window.deleteAlbum(currentAlbumId);
+                await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
+            }
+        };
+
+        // --- ORDEN MANUAL (DRAG & DROP) ---
+        window.handleDragStart = (idx, e) => {
+            draggedIdx = idx;
+            e.target.classList.add('dragging');
+        };
+
+        window.handleDragOver = (e) => {
+            e.preventDefault();
+        };
+
+        window.handleDrop = async (idx, e) => {
+            e.preventDefault();
+            if (draggedIdx === null || draggedIdx === idx) return;
+            
+            const updated = [...currentPhotos];
+            const itemMover = updated.splice(draggedIdx, 1)[0];
+            updated.splice(idx, 0, itemMover);
+            
+            // Guardar el nuevo orden en Firebase
+            await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
+            draggedIdx = null;
+        };
+
+        // --- ESCUCHA FIREBASE ---
+        onSnapshot(query(collection(db, "albums"), orderBy("createdAt", "desc")), (snap) => {
+            allAlbums = [];
+            const root = document.getElementById('albums-root');
+            const btnAdd = document.getElementById('btn-add-static');
+            root.innerHTML = '';
+            root.appendChild(btnAdd);
+
+            snap.forEach(d => {
+                const alb = { id: d.id, ...d.data() };
+                allAlbums.push(alb);
+                const card = document.createElement('div');
+                card.className = 'album-card';
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="event.stopPropagation(); window.deleteAlbum('${d.id}')">×</button>
+                    <img src="${alb.photos[0].src}">
+                    <div class="album-info">${alb.title} (${alb.photos.length})</div>
+                `;
+                card.onclick = () => window.openAlbum(alb);
+                root.appendChild(card);
+            });
+
+            if(currentAlbumId) {
+                const active = allAlbums.find(a => a.id === currentAlbumId);
+                if(active) window.renderPhotos(active.photos, active.title, active.createdAt);
+                else window.showHome();
+            }
+        });
+
+        window.renderPhotos = (photos, title, date) => {
+            currentPhotos = photos;
+            document.getElementById('current-album-title').innerText = title;
+            document.getElementById('album-meta').innerText = `${photos.length} fotos • ${new Date(date).toLocaleDateString()}`;
+            
+            const gallery = document.getElementById('inner-gallery');
+            gallery.innerHTML = '';
+            
+            photos.forEach((p, idx) => {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                item.draggable = true;
+                item.innerHTML = `
+                    <img src="${p.src}">
+                    <button class="del-photo" onclick="window.deleteImage(${idx}, event)">×</button>
+                `;
+                item.onclick = () => window.openLightbox(idx);
+                
+                // Eventos Drag
+                item.ondragstart = (e) => window.handleDragStart(idx, e);
+                item.ondragover = (e) => window.handleDragOver(e);
+                item.ondrop = (e) => window.handleDrop(idx, e);
+                
+                gallery.appendChild(item);
+            });
+        };
+
+        window.openAlbum = (album) => {
+            currentAlbumId = album.id;
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-photos').classList.remove('hidden');
+            window.renderPhotos(album.photos, album.title, album.createdAt);
+        };
+
+        window.showHome = () => {
+            currentAlbumId = null;
+            document.getElementById('view-home').classList.remove('hidden');
+            document.getElementById('view-photos').classList.add('hidden');
+        };
+
+        // --- OTROS ---
+        window.searchAlbums = () => {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            document.querySelectorAll('.album-card').forEach((c, i) => {
+                if(i === 0) return;
+                c.style.display = c.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+            });
+        };
+
+        window.downloadBackup = () => {
+            const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allAlbums));
+            const a = document.createElement('a'); a.href = data; a.download = "backup_cloud.json"; a.click();
+        };
+
+        window.importBackup = async (e) => {
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                const data = JSON.parse(ev.target.result);
+                for(let alb of data) await addDoc(collection(db, "albums"), alb);
+            };
+            reader.readAsText(e.target.files[0]);
+        };
+
+        window.openLightbox = (i) => { currentImgIndex = i; document.getElementById('lb-img').src = currentPhotos[i].src; document.getElementById('lightbox').style.display = 'flex'; };
+        window.changeImage = (s) => { currentImgIndex = (currentImgIndex + s + currentPhotos.length) % currentPhotos.length; document.getElementById('lb-img').src = currentPhotos[currentImgIndex].src; };
+        window.closeLightbox = () => document.getElementById('lightbox').style.display = 'none';
+        window.openModal = () => document.getElementById('modal').style.display = 'flex';
+        window.closeModal = () => document.getElementById('modal').style.display = 'none';
+        window.toggleTheme = () => {
+            const d = document.documentElement;
+            const isDark = d.getAttribute('data-theme') === 'dark';
+            d.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            document.getElementById('theme-icon').innerText = isDark ? '🌙' : '☀️';
+        };
+    </script>
+</body>
+</html>
