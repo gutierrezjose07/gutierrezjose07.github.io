@@ -57,7 +57,7 @@
         <div class="nav-controls">
             <input type="text" id="search-input" placeholder="Buscar álbum..." onkeyup="window.searchAlbums()">
             <button class="btn-main" style="background:#3498db;" onclick="window.downloadBackup()">💾 Backup</button>
-            <button class="btn-main" style="background:#e67e22;" onclick="document.getElementById('import-input').click()">📥 Import</button>
+            <button class="btn-main" style="background:#e67e22;" onclick="document.getElementById('import-input').click()">📥 Importar</button>
             <input type="file" id="import-input" hidden accept=".json" onchange="window.importBackup(event)">
             <button onclick="toggleTheme()" id="theme-icon" style="background:none; border:none; cursor:pointer; font-size:1.4rem;">🌙</button>
         </div>
@@ -315,4 +315,5 @@
         };
     </script>
 </body>
+
 </html>
