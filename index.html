@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyPets 🐾</title>
+    <title>MyPets 🐾 Secure</title>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -20,45 +21,54 @@
         /* NAVBAR */
         .navbar { position: fixed; top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: var(--navbar-bg); backdrop-filter: blur(10px); z-index: 1000; box-sizing: border-box; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .nav-controls { display: flex; align-items: center; gap: 8px; }
-        #search-input { padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 120px; transition: 0.3s; }
-        #search-input:focus { width: 180px; border-color: var(--accent); }
+        #search-input { padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 120px; }
 
-        /* CONTENEDORES */
+        /* GRID */
         .albums-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .album-card { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; transition: 0.3s; position: relative; }
-        .album-card img { width: 100%; height: 200px; object-fit: cover; }
-        .album-info { padding: 15px; text-align: center; font-weight: bold; }
-        .delete-btn { position: absolute; top: 10px; right: 10px; background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; z-index: 10; font-weight: bold;}
-
-        .hidden { display: none !important; }
-        .photo-view { padding: 20px; text-align: center; }
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 20px; }
+        .album-card { background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; transition: 0.3s; position: relative; display: flex; flex-direction: column; }
+        .album-card img { width: 100%; height: 180px; object-fit: cover; }
+        .album-info { padding: 15px; text-align: center; }
+        .album-title { font-weight: bold; font-size: 1.1rem; }
         
-        .gallery-item { height: 180px; border-radius: 10px; overflow: hidden; cursor: grab; position: relative; transition: transform 0.2s; border: 2px solid transparent; }
-        .gallery-item:active { cursor: grabbing; }
-        .gallery-item.dragging { opacity: 0.5; transform: scale(0.9); border: 2px dashed var(--accent); }
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-        
-        .del-photo { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.8); color: white; border: none; border-radius: 5px; cursor: pointer; padding: 2px 8px; font-weight: bold; z-index: 5; }
+        .tag-container { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 8px; }
+        .tag { background: var(--accent); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; }
 
+        /* BOTONES DE SEGURIDAD */
+        .admin-only { display: none !important; } /* Oculto por defecto */
+        .admin-active .admin-only { display: flex !important; }
+        .admin-active .admin-only-inline { display: inline-block !important; }
+        
+        .delete-btn { position: absolute; top: 10px; right: 10px; background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; z-index: 10; font-weight: bold; align-items: center; justify-content: center; }
         .btn-main { background: var(--accent); color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 10px; padding: 10px 18px; margin: 5px; transition: 0.2s; }
-        .btn-main:hover { transform: scale(1.05); }
+        .btn-lock { background: #57606f; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+        .btn-lock.unlocked { background: #2ecc71; }
 
-        .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
-        #lb-img { max-width: 90%; max-height: 80%; border-radius: 8px; }
-        .lb-nav { position: absolute; top: 50%; color: white; background: none; border: none; font-size: 2rem; cursor: pointer; padding: 20px; }
-        .prev-btn { left: 10px; } .next-btn { right: 10px; }
+        /* LOADER */
+        #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 5000; color: white; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #fff; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* GALLERY & BOOK */
+        .gallery-item { width: 130px; height: 130px; border-radius: 12px; overflow: hidden; position: relative; }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        #view-catalog { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        #book-container { width: 95vw; height: 85vh; display: flex; justify-content: center; align-items: center; }
+        .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.15); border: none; color: white; width: 60px; height: 100px; border-radius: 10px; cursor: pointer; font-size: 3rem; z-index: 2100; }
+        
+        .hidden { display: none !important; }
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; }
     </style>
 </head>
-<body>
+<body class="read-only-mode"> <div id="loader"><div class="spinner"></div><div id="loader-text">Cargando...</div></div>
 
     <nav class="navbar">
-        <div class="logo">🐾 MyPets</div>
+        <div class="logo" style="font-weight: bold; font-size: 1.5rem;">🐾 MyPets</div>
         <div class="nav-controls">
-            <input type="text" id="search-input" placeholder="Buscar álbum..." onkeyup="window.searchAlbums()">
-            <button class="btn-main" style="background:#3498db;" onclick="window.downloadBackup()">💾 Backup</button>
-            <button class="btn-main" style="background:#e67e22;" onclick="document.getElementById('import-input').click()">📥 Importar</button>
+            <input type="text" id="search-input" placeholder="Buscar..." onkeyup="window.searchAlbums()">
+            <button class="btn-main admin-only-inline" style="background:#3498db; display:none;" onclick="window.downloadBackup()">💾 Backup</button>
+            <button class="btn-main admin-only-inline" style="background:#e67e22; display:none;" onclick="document.getElementById('import-input').click()">📥 Import</button>
             <input type="file" id="import-input" hidden accept=".json" onchange="window.importBackup(event)">
+            <button onclick="window.toggleAdmin()" id="lock-btn" class="btn-lock">🔒</button>
             <button onclick="toggleTheme()" id="theme-icon" style="background:none; border:none; cursor:pointer; font-size:1.4rem;">🌙</button>
         </div>
     </nav>
@@ -66,41 +76,43 @@
     <div id="view-home">
         <header style="text-align:center;"><h1>Mis Álbumes</h1></header>
         <main id="albums-root" class="albums-container">
-            <div class="album-card" id="btn-add-static" style="border: 2px dashed var(--accent); background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:250px;" onclick="window.openModal()">
-                <span style="font-size: 3rem; color: var(--accent);">+</span>
-                <p>Nuevo Álbum</p>
+            <div class="album-card admin-only" id="btn-add-static" style="border: 2px dashed var(--accent); background:none; align-items:center; justify-content:center; min-height:250px;" onclick="window.openModal()">
+                <span style="font-size: 3.5rem; color: var(--accent);">+</span>
+                <p style="font-weight: bold;">Nuevo Álbum</p>
             </div>
         </main>
     </div>
 
-    <section id="view-photos" class="photo-view hidden">
-        <button class="btn-main" style="background:#7f8c8d;" onclick="window.showHome()">← Volver</button>
-        <button class="btn-main" style="background:#2ecc71;" onclick="document.getElementById('add-more').click()">➕ Fotos</button>
-        <button class="btn-main" style="background:#9b59b6;" onclick="window.editTitle()">✏️ Título</button>
+    <section id="view-photos" class="photo-view hidden" style="text-align: center; padding: 20px;">
+        <div style="margin-bottom: 20px;">
+            <button class="btn-main" style="background:#7f8c8d;" onclick="window.showHome()">← Volver</button>
+            <button class="btn-main admin-only-inline" style="background:#2ecc71; display:none;" onclick="document.getElementById('add-more').click()">➕ Fotos</button>
+            <button class="btn-main admin-only-inline" style="background:#9b59b6; display:none;" onclick="window.editTitle()">✏️ Título</button>
+            <button class="btn-main" style="background:#f1c40f; color: #333;" onclick="window.openCatalog()">📖 Ver Libro</button>
+        </div>
+        <h2 id="current-album-title" style="color:var(--accent); margin: 0;"></h2>
+        <p id="album-meta-view" style="opacity: 0.7; margin: 5px 0 10px;"></p>
+        <div id="current-tags" class="tag-container" style="margin-bottom: 20px;"></div>
+        <div id="inner-gallery" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div>
         <input type="file" id="add-more" hidden multiple accept="image/*" onchange="window.addPhotos(event)">
-        
-        <h2 id="current-album-title" style="color:var(--accent); margin-bottom: 0;"></h2>
-        <p id="album-meta" style="font-size: 0.8rem; opacity: 0.7;"></p>
-        <p style="font-size: 0.7rem; color: var(--accent);">💡 Arrastra las fotos para reordenarlas</p>
-        
-        <div id="inner-gallery" class="gallery"></div>
+    </section>
+
+    <section id="view-catalog">
+        <button class="btn-main" style="position: absolute; top: 20px; right: 20px; z-index: 2200; background: var(--danger);" onclick="window.closeCatalog()">✖ Cerrar</button>
+        <button class="nav-btn" style="left: 20px;" onclick="if(window.pageFlip) window.pageFlip.flipPrev()">❮</button>
+        <button class="nav-btn" style="right: 20px;" onclick="if(window.pageFlip) window.pageFlip.flipNext()">❯</button>
+        <div id="book-container"></div>
     </section>
 
     <div id="modal" class="lightbox">
-        <div style="background:var(--card-bg); padding:30px; border-radius:20px; width:90%; max-width:400px; text-align:center;">
-            <h3 style="color:var(--text)">Crear Álbum</h3>
-            <input type="text" id="new-name" placeholder="Nombre del álbum" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
-            <input type="file" id="new-files" multiple accept="image/*" style="width:100%; margin-bottom:15px; color:var(--text)">
-            <button class="btn-main" id="btn-save" onclick="window.handleCreate()">Crear ✨</button>
+        <div style="background:var(--card-bg); padding:25px; border-radius:20px; width:90%; max-width:400px; text-align:center;">
+            <h3>Nuevo Álbum</h3>
+            <input type="text" id="new-name" placeholder="Nombre" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; box-sizing:border-box;">
+            <input type="text" id="new-tags" placeholder="Etiquetas..." style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; box-sizing:border-box;">
+            <input type="file" id="new-files" multiple accept="image/*" style="width:100%; margin-bottom:15px;">
+            <button class="btn-main" onclick="window.handleCreate()">Crear ✨</button>
             <button class="btn-main" style="background:#aaa;" onclick="window.closeModal()">Cerrar</button>
         </div>
-    </div>
-
-    <div id="lightbox" class="lightbox">
-        <span style="position:absolute; top:20px; right:25px; color:white; font-size:2.5rem; cursor:pointer;" onclick="window.closeLightbox()">&times;</span>
-        <button class="lb-nav prev-btn" onclick="window.changeImage(-1)">❮</button>
-        <img id="lb-img" src="">
-        <button class="lb-nav next-btn" onclick="window.changeImage(1)">❯</button>
     </div>
 
     <script type="module">
@@ -118,12 +130,36 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        let currentAlbumId = null, currentPhotos = [], allAlbums = [], draggedIdx = null;
+        let isAdmin = false;
+        const MASTER_KEY = "1234"; // <--- Tu contraseña de edición
 
-        let currentAlbumId = null;
-        let currentPhotos = [];
-        let currentImgIndex = 0;
-        let allAlbums = [];
-        let draggedIdx = null;
+        // LÓGICA DE SEGURIDAD
+        window.toggleAdmin = () => {
+            if (!isAdmin) {
+                const pass = prompt("Introduce la clave de edición:");
+                if (pass === MASTER_KEY) {
+                    isAdmin = true;
+                    document.body.classList.add('admin-active');
+                    document.getElementById('lock-btn').innerText = "🔓";
+                    document.getElementById('lock-btn').classList.add('unlocked');
+                    alert("Modo Edición Activado ✨");
+                } else {
+                    alert("Clave incorrecta ❌");
+                }
+            } else {
+                isAdmin = false;
+                document.body.classList.remove('admin-active');
+                document.getElementById('lock-btn').innerText = "🔒";
+                document.getElementById('lock-btn').classList.remove('unlocked');
+                alert("Modo Lectura Activado 🐾");
+            }
+        };
+
+        // --- Resto de funciones (Loader, Format, Compress) ---
+        const showLoader = (t) => { document.getElementById('loader-text').innerText = t; document.getElementById('loader').style.display = 'flex'; };
+        const hideLoader = () => { document.getElementById('loader').style.display = 'none'; };
+        const formatDate = (t) => new Date(t).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
 
         async function compress(file) {
             return new Promise(res => {
@@ -132,9 +168,9 @@
                     const img = new Image(); img.src = e.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
+                        const scale = Math.min(800 / img.width, 1);
+                        canvas.width = img.width * scale; canvas.height = img.height * scale;
                         const ctx = canvas.getContext('2d');
-                        const scale = 800 / img.width;
-                        canvas.width = 800; canvas.height = img.height * scale;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         res(canvas.toDataURL('image/jpeg', 0.6));
                     }
@@ -142,178 +178,149 @@
             });
         }
 
-        // --- FUNCIONES NUBE ---
-        window.handleCreate = async () => {
-            const name = document.getElementById('new-name').value;
-            const files = document.getElementById('new-files').files;
-            if(!name || files.length === 0) return alert("Datos incompletos");
-            const btn = document.getElementById('btn-save');
-            btn.innerText = "Subiendo..."; btn.disabled = true;
-
-            const photoStrings = await Promise.all(Array.from(files).map(f => compress(f)));
-            await addDoc(collection(db, "albums"), {
-                title: name,
-                photos: photoStrings.map(p => ({ src: p, date: Date.now() })),
-                createdAt: Date.now()
-            });
-            window.closeModal();
-            btn.innerText = "Crear ✨"; btn.disabled = false;
-        };
-
-        window.deleteAlbum = async (id) => {
-            if(confirm("¿Borrar álbum?")) await deleteDoc(doc(db, "albums", id));
-        };
-
-        window.editTitle = async () => {
-            const nuevo = prompt("Nuevo nombre:", document.getElementById('current-album-title').innerText);
-            if(nuevo) await updateDoc(doc(db, "albums", currentAlbumId), { title: nuevo });
-        };
-
-        window.addPhotos = async (e) => {
-            const files = e.target.files;
-            if(files.length === 0) return;
-            const newOnes = await Promise.all(Array.from(files).map(f => compress(f)));
-            const updated = [...currentPhotos, ...newOnes.map(p => ({ src: p, date: Date.now() }))];
-            await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
-        };
-
-        window.deleteImage = async (idx, e) => {
-            e.stopPropagation();
-            if(confirm("¿Eliminar foto?")) {
-                const updated = [...currentPhotos];
-                updated.splice(idx, 1);
-                if(updated.length === 0) return window.deleteAlbum(currentAlbumId);
-                await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
-            }
-        };
-
-        // --- ORDEN MANUAL (DRAG & DROP) ---
-        window.handleDragStart = (idx, e) => {
-            draggedIdx = idx;
-            e.target.classList.add('dragging');
-        };
-
-        window.handleDragOver = (e) => {
-            e.preventDefault();
-        };
-
-        window.handleDrop = async (idx, e) => {
-            e.preventDefault();
-            if (draggedIdx === null || draggedIdx === idx) return;
-            
-            const updated = [...currentPhotos];
-            const itemMover = updated.splice(draggedIdx, 1)[0];
-            updated.splice(idx, 0, itemMover);
-            
-            // Guardar el nuevo orden en Firebase
-            await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
-            draggedIdx = null;
-        };
-
-        // --- ESCUCHA FIREBASE ---
+        // --- Renderizado y Firebase ---
         onSnapshot(query(collection(db, "albums"), orderBy("createdAt", "desc")), (snap) => {
             allAlbums = [];
             const root = document.getElementById('albums-root');
             const btnAdd = document.getElementById('btn-add-static');
-            root.innerHTML = '';
-            root.appendChild(btnAdd);
-
+            root.innerHTML = ''; root.appendChild(btnAdd);
             snap.forEach(d => {
-                const alb = { id: d.id, ...d.data() };
-                allAlbums.push(alb);
-                const card = document.createElement('div');
-                card.className = 'album-card';
+                const alb = { id: d.id, ...d.data() }; allAlbums.push(alb);
+                if (currentAlbumId === alb.id) {
+                    currentPhotos = alb.photos;
+                    document.getElementById('current-album-title').innerText = alb.title;
+                    document.getElementById('album-meta-view').innerText = `${alb.photos.length} imágenes`;
+                    document.getElementById('current-tags').innerHTML = (alb.tags || []).map(t => `<span class="tag">#${t}</span>`).join('');
+                    window.renderAlbumPhotos(alb.photos);
+                }
+                const card = document.createElement('div'); card.className = 'album-card';
+                const tagsHtml = (alb.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
                 card.innerHTML = `
-                    <button class="delete-btn" onclick="event.stopPropagation(); window.deleteAlbum('${d.id}')">×</button>
-                    <img src="${alb.photos[0].src}">
-                    <div class="album-info">${alb.title} (${alb.photos.length})</div>
-                `;
+                    <button class="delete-btn admin-only" onclick="event.stopPropagation(); window.deleteAlbum('${d.id}')">×</button>
+                    <img src="${alb.photos[0]?.src || ''}">
+                    <div class="album-info">
+                        <div class="album-title">${alb.title} (${alb.photos.length})</div>
+                        <div class="album-date">📅 ${formatDate(alb.createdAt)}</div>
+                        <div class="tag-container">${tagsHtml}</div>
+                    </div>`;
                 card.onclick = () => window.openAlbum(alb);
                 root.appendChild(card);
             });
-
-            if(currentAlbumId) {
-                const active = allAlbums.find(a => a.id === currentAlbumId);
-                if(active) window.renderPhotos(active.photos, active.title, active.createdAt);
-                else window.showHome();
-            }
         });
 
-        window.renderPhotos = (photos, title, date) => {
-            currentPhotos = photos;
-            document.getElementById('current-album-title').innerText = title;
-            document.getElementById('album-meta').innerText = `${photos.length} fotos • ${new Date(date).toLocaleDateString()}`;
-            
+        window.renderAlbumPhotos = (photos) => {
             const gallery = document.getElementById('inner-gallery');
             gallery.innerHTML = '';
-            
             photos.forEach((p, idx) => {
                 const item = document.createElement('div');
                 item.className = 'gallery-item';
-                item.draggable = true;
-                item.innerHTML = `
-                    <img src="${p.src}">
-                    <button class="del-photo" onclick="window.deleteImage(${idx}, event)">×</button>
-                `;
-                item.onclick = () => window.openLightbox(idx);
-                
-                // Eventos Drag
-                item.ondragstart = (e) => window.handleDragStart(idx, e);
-                item.ondragover = (e) => window.handleDragOver(e);
-                item.ondrop = (e) => window.handleDrop(idx, e);
-                
+                // Solo permitir drag si es admin
+                if(isAdmin) {
+                    item.draggable = true;
+                    item.ondragstart = () => { draggedIdx = idx; };
+                    item.ondragover = (e) => e.preventDefault();
+                    item.ondrop = async () => {
+                        showLoader("Reordenando...");
+                        const updated = [...currentPhotos];
+                        const [moved] = updated.splice(draggedIdx, 1);
+                        updated.splice(idx, 0, moved);
+                        await updateDoc(doc(db, "albums", currentAlbumId), { photos: updated });
+                        hideLoader();
+                    };
+                }
+                item.innerHTML = `<img src="${p.src}">
+                <button class="delete-btn admin-only" style="top:5px; right:5px; width:24px; height:24px;" onclick="event.stopPropagation(); window.delPhoto(${idx})">×</button>`;
                 gallery.appendChild(item);
             });
         };
 
+        // --- Acciones de Álbum ---
         window.openAlbum = (album) => {
-            currentAlbumId = album.id;
+            currentAlbumId = album.id; currentPhotos = album.photos;
             document.getElementById('view-home').classList.add('hidden');
             document.getElementById('view-photos').classList.remove('hidden');
-            window.renderPhotos(album.photos, album.title, album.createdAt);
+            window.renderAlbumPhotos(album.photos);
         };
 
-        window.showHome = () => {
-            currentAlbumId = null;
-            document.getElementById('view-home').classList.remove('hidden');
-            document.getElementById('view-photos').classList.add('hidden');
+        window.handleCreate = async () => {
+            const n = document.getElementById('new-name').value;
+            const t = document.getElementById('new-tags').value;
+            const f = document.getElementById('new-files').files;
+            if(!n || f.length === 0) return alert("Faltan datos.");
+            showLoader("Subiendo...");
+            const tags = t.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== "");
+            const pData = await Promise.all(Array.from(f).map(file => compress(file)));
+            await addDoc(collection(db, "albums"), { title: n, tags: tags, photos: pData.map(p => ({ src: p })), createdAt: Date.now() });
+            window.closeModal(); hideLoader();
         };
 
-        // --- OTROS ---
+        window.delPhoto = async (i) => { if(confirm("¿Eliminar foto?")) { 
+            const upd = [...currentPhotos]; upd.splice(i, 1); 
+            await updateDoc(doc(db, "albums", currentAlbumId), { photos: upd });
+        }};
+
+        window.addPhotos = async (e) => {
+            showLoader("Añadiendo...");
+            const newP = await Promise.all(Array.from(e.target.files).map(f => compress(f)));
+            await updateDoc(doc(db, "albums", currentAlbumId), { photos: [...currentPhotos, ...newP.map(p => ({ src: p }))] });
+            hideLoader();
+        };
+
+        window.editTitle = async () => {
+            const n = prompt("Nuevo título:", document.getElementById('current-album-title').innerText);
+            if(n) await updateDoc(doc(db, "albums", currentAlbumId), { title: n });
+        };
+
+        window.deleteAlbum = async (id) => { if(confirm("¿Borrar álbum?")) await deleteDoc(doc(db, "albums", id)); };
+
+        // --- Utilidades Nav ---
+        window.openCatalog = () => {
+            const container = document.getElementById('book-container');
+            document.getElementById('view-catalog').style.display = 'flex';
+            container.innerHTML = '<div id="book"></div>';
+            const bookEl = document.getElementById('book');
+            const cover = document.createElement('div');
+            cover.className = 'page';
+            cover.innerHTML = `<div style="padding:40px; text-align:center; background:var(--accent); color:white; height:100%; display:flex; flex-direction:column; justify-content:center;"><h1>${document.getElementById('current-album-title').innerText}</h1></div>`;
+            bookEl.appendChild(cover);
+            currentPhotos.forEach(p => {
+                const div = document.createElement('div'); div.className = 'page';
+                div.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; background:white;"><img src="${p.src}" style="max-width:100%; max-height:100%;"></div>`;
+                bookEl.appendChild(div);
+            });
+            setTimeout(() => {
+                window.pageFlip = new St.PageFlip(bookEl, { width: 800, height: 950, size: "stretch", showCover: true });
+                window.pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+            }, 150);
+        };
+        window.closeCatalog = () => { if(window.pageFlip) window.pageFlip.destroy(); document.getElementById('view-catalog').style.display = 'none'; };
+        window.showHome = () => { document.getElementById('view-home').classList.remove('hidden'); document.getElementById('view-photos').classList.add('hidden'); currentAlbumId = null; };
         window.searchAlbums = () => {
             const q = document.getElementById('search-input').value.toLowerCase();
-            document.querySelectorAll('.album-card').forEach((c, i) => {
-                if(i === 0) return;
-                c.style.display = c.innerText.toLowerCase().includes(q) ? 'block' : 'none';
-            });
+            document.querySelectorAll('.album-card').forEach((c, i) => { if(i > 0) c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none'; });
         };
-
         window.downloadBackup = () => {
-            const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allAlbums));
-            const a = document.createElement('a'); a.href = data; a.download = "backup_cloud.json"; a.click();
+            const a = document.createElement('a');
+            a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allAlbums));
+            a.download = "backup_mypets.json"; a.click();
         };
-
         window.importBackup = async (e) => {
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
+            const r = new FileReader();
+            r.onload = async (ev) => {
+                showLoader("Importando...");
                 const data = JSON.parse(ev.target.result);
-                for(let alb of data) await addDoc(collection(db, "albums"), alb);
+                for(let alb of data) { delete alb.id; await addDoc(collection(db, "albums"), alb); }
+                hideLoader();
             };
-            reader.readAsText(e.target.files[0]);
+            r.readAsText(e.target.files[0]);
         };
-
-        window.openLightbox = (i) => { currentImgIndex = i; document.getElementById('lb-img').src = currentPhotos[i].src; document.getElementById('lightbox').style.display = 'flex'; };
-        window.changeImage = (s) => { currentImgIndex = (currentImgIndex + s + currentPhotos.length) % currentPhotos.length; document.getElementById('lb-img').src = currentPhotos[currentImgIndex].src; };
-        window.closeLightbox = () => document.getElementById('lightbox').style.display = 'none';
         window.openModal = () => document.getElementById('modal').style.display = 'flex';
         window.closeModal = () => document.getElementById('modal').style.display = 'none';
         window.toggleTheme = () => {
-            const d = document.documentElement;
-            const isDark = d.getAttribute('data-theme') === 'dark';
+            const d = document.documentElement; const isDark = d.getAttribute('data-theme') === 'dark';
             d.setAttribute('data-theme', isDark ? 'light' : 'dark');
             document.getElementById('theme-icon').innerText = isDark ? '🌙' : '☀️';
         };
     </script>
 </body>
-
 </html>
